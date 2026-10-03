@@ -79,19 +79,19 @@ st.markdown("""
         transform: translateY(-2px);
     }
     </style>
-""", unsafe_allow_text=True)
+""", unsafe_allow_html=True)
 
 # Main Title Header
-st.markdown("<h1 class='title-text'>⚡ AI Media Studio Pro</h1>", unsafe_allow_text=True)
-st.markdown("<p class='subtitle-text'>Ultra-Fast Voice Narration & Visual Studio Engine</p>", unsafe_allow_text=True)
+st.markdown("<h1 class='title-text'>⚡ AI Media Studio Pro</h1>", unsafe_allow_html=True)
+st.markdown("<p class='subtitle-text'>Ultra-Fast Voice Narration & Visual Studio Engine</p>", unsafe_allow_html=True)
 
-# TOP AD BANNER PLACEHOLDER (Yahan apna AdSterra/Banner link laga sakte hain)
+# TOP AD BANNER PLACEHOLDER
 st.markdown("""
 <div class='ad-banner'>
     📢 <b>SPONSORED ADS / PROMOTION SPOT</b><br>
     <span style='color:#8b949e;'>Click here to explore partner tools & AI offers</span>
 </div>
-""", unsafe_allow_text=True)
+""", unsafe_allow_html=True)
 
 # Sidebar
 st.sidebar.markdown("### ⚙️ **Studio Dashboard**")
@@ -106,17 +106,17 @@ st.sidebar.markdown("---")
 pexels_api_key = st.sidebar.text_input("🔑 **Pexels API Key (Optional)**", type="password", help="Enter key for auto HD video clips")
 
 # SIDEBAR AD BANNER
-st.sidebar.markdown("<br>", unsafe_allow_text=True)
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
 st.sidebar.markdown("""
 <div class='ad-banner'>
     🎯 <b>AdSpot</b><br>
     Monetize Your Traffic
 </div>
-""", unsafe_allow_text=True)
+""", unsafe_allow_html=True)
 
 # Input Area
 user_input = st.text_area(
-    "✍️️ **Script & Poetry Input:**", 
+    "✍️ **Script & Poetry Input:**", 
     height=130, 
     value="Dil se jo baat nikalti hai, asar rakhti hai,\nPar nahin, taaqat-e-parwaaz magar rakhti hai.",
     placeholder="Write your line-by-line script here..."
@@ -143,7 +143,7 @@ def fetch_pexels_video(query, api_key):
         pass
     return None
 
-st.markdown("<br>", unsafe_allow_text=True)
+st.markdown("<br>", unsafe_allow_html=True)
 
 if st.button("🚀 Generate High-Speed Media"):
     if not user_input.strip():
@@ -152,8 +152,8 @@ if st.button("🚀 Generate High-Speed Media"):
         lines = [line.strip() for line in user_input.split('\n') if line.strip()]
         
         for idx, line in enumerate(lines, 1):
-            st.markdown("<div class='scene-box'>", unsafe_allow_text=True)
-            st.markdown(f"### 📍 **Scene {idx}:** *\"{line}\"*")
+            st.markdown("<div class='scene-box'>", unsafe_allow_html=True)
+            st.markdown(f"### 📍 **Scene {idx}:** *\"{line}\"*", unsafe_allow_html=True)
             
             col1, col2 = st.columns(2)
             
@@ -178,14 +178,14 @@ if st.button("🚀 Generate High-Speed Media"):
                 else:
                     st.info("💡 Add Pexels API Key in Sidebar for background video clips.")
             
-            st.markdown("</div>", unsafe_allow_text=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
         # BOTTOM AD BANNER
         st.markdown("""
         <div class='ad-banner'>
             🔥 <b>SUPPORT OUR STUDIO</b> — Click sponsor links above to keep this tool free!
         </div>
-        """, unsafe_allow_text=True)
+        """, unsafe_allow_html=True)
         
         st.success("✅ **Processing Complete!** Download audio & create your video.")
-    
+        
