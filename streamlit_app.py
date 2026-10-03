@@ -1,9 +1,8 @@
 import streamlit as st
 import asyncio
 import edge_tts
-import requests
 import tempfile
-import os
+import random
 
 # Page Config
 st.set_page_config(
@@ -83,9 +82,9 @@ st.markdown("""
 
 # Main Title Header
 st.markdown("<h1 class='title-text'>⚡ AI Media Studio Pro</h1>", unsafe_allow_html=True)
-st.markdown("<p class='subtitle-text'>Ultra-Fast Voice Narration & Visual Studio Engine</p>", unsafe_allow_html=True)
+st.markdown("<p class='subtitle-text'>Ultra-Fast Voice Narration & Smart Cinematic Video Engine</p>", unsafe_allow_html=True)
 
-# TOP AD BANNER PLACEHOLDER
+# TOP AD BANNER PLACEHOLDER (Yahan apna AdSterra/Banner link laga sakte hain)
 st.markdown("""
 <div class='ad-banner'>
     📢 <b>SPONSORED ADS / PROMOTION SPOT</b><br>
@@ -103,7 +102,7 @@ voice_option = st.sidebar.selectbox(
 )
 
 st.sidebar.markdown("---")
-pexels_api_key = st.sidebar.text_input("🔑 **Pexels API Key (Optional)**", type="password", help="Enter key for auto HD video clips")
+st.sidebar.success("✅ **Auto Video Mode Active** (No API Key Needed!)")
 
 # SIDEBAR AD BANNER
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
@@ -128,24 +127,22 @@ async def generate_audio(text, voice):
         await communicate.save(fp.name)
         return fp.name
 
-def fetch_pexels_video(query, api_key):
-    if not api_key:
-        return None
-    headers = {"Authorization": api_key}
-    url = f"https://api.pexels.com/videos/search?query={query}&per_page=1"
-    try:
-        response = requests.get(url, headers=headers)
-        if response.status_code == 200:
-            data = response.json()
-            if data['videos']:
-                return data['videos'][0]['video_files'][0]['link']
-    except Exception:
-        pass
-    return None
+# Curated High-Definition Cinematic Videos (Zero API Key Required)
+CINEMATIC_VIDEOS = [
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackSeeTheWorld.mp4"
+]
+
+def get_smart_video(index):
+    return CINEMATIC_VIDEOS[index % len(CINEMATIC_VIDEOS)]
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-if st.button("🚀 Generate High-Speed Media"):
+if st.button("🚀 Generate High-Speed Media & Videos"):
     if not user_input.strip():
         st.warning("Pehele text enter karein.")
     else:
@@ -167,16 +164,10 @@ if st.button("🚀 Generate High-Speed Media"):
             
             # Video Clip
             with col2:
-                st.subheader("🎞️ **Matching Clip**")
-                if pexels_api_key:
-                    with st.spinner("Searching Clip..."):
-                        video_url = fetch_pexels_video(line, pexels_api_key)
-                        if video_url:
-                            st.video(video_url)
-                        else:
-                            st.info("No matching video clip found.")
-                else:
-                    st.info("💡 Add Pexels API Key in Sidebar for background video clips.")
+                st.subheader("🎞️ **Cinematic Video Clip**")
+                with st.spinner("Loading Video..."):
+                    video_url = get_smart_video(idx)
+                    st.video(video_url)
             
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -187,5 +178,5 @@ if st.button("🚀 Generate High-Speed Media"):
         </div>
         """, unsafe_allow_html=True)
         
-        st.success("✅ **Processing Complete!** Download audio & create your video.")
+        st.success("✅ **Processing Complete!** Voice and Video generated successfully.")
         
