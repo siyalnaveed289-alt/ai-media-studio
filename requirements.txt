@@ -1,5 +1,6 @@
 streamlit
-pandas
-streamlit
-pandas
 edge-tts
+moviepy==1.0.3
+requests
+Pillow
+
