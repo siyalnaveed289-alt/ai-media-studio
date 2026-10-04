@@ -2,7 +2,6 @@ import streamlit as st
 import asyncio
 import edge_tts
 import tempfile
-import random
 
 # Page Config
 st.set_page_config(
@@ -84,7 +83,7 @@ st.markdown("""
 st.markdown("<h1 class='title-text'>⚡ AI Media Studio Pro</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitle-text'>Ultra-Fast Voice Narration & Smart Cinematic Video Engine</p>", unsafe_allow_html=True)
 
-# TOP AD BANNER PLACEHOLDER (Yahan apna AdSterra/Banner link laga sakte hain)
+# TOP AD BANNER PLACEHOLDER
 st.markdown("""
 <div class='ad-banner'>
     📢 <b>SPONSORED ADS / PROMOTION SPOT</b><br>
@@ -127,7 +126,6 @@ async def generate_audio(text, voice):
         await communicate.save(fp.name)
         return fp.name
 
-# Curated High-Definition Cinematic Videos (Zero API Key Required)
 CINEMATIC_VIDEOS = [
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
@@ -179,4 +177,3 @@ if st.button("🚀 Generate High-Speed Media & Videos"):
         """, unsafe_allow_html=True)
         
         st.success("✅ **Processing Complete!** Voice and Video generated successfully.")
-        
