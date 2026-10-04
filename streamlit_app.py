@@ -5,7 +5,15 @@ import os
 import requests
 import urllib.parse
 from PIL import Image
-from moviepy.editor import ImageClip, AudioFileClip, TextClip, CompositeVideoClip
+
+# MoviePy import compatibility fix
+try:
+    from moviepy.editor import ImageClip, AudioFileClip, TextClip, CompositeVideoClip
+except ImportError:
+    from moviepy.video.io.ImageClip import ImageClip
+    from moviepy.audio.io.AudioFileClip import AudioFileClip
+    from moviepy.video.VideoClip import TextClip
+    from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 
 st.set_page_config(page_title="Sial AI Stories", page_icon="🎬", layout="wide")
 
@@ -17,8 +25,8 @@ VOICES = {
     "👨‍💼 Male Urdu (Asad - Deep Storyteller)": {"id": "ur-PK-AsadNeural", "pitch": "-3Hz", "rate": "-5%"},
     "👩‍💼 Female Urdu (Uzma - Storyteller)": {"id": "ur-PK-UzmaNeural", "pitch": "-1Hz", "rate": "-5%"},
     "🕌 Male Arabic (Hamed - Quran Best)": {"id": "ar-SA-HamedNeural", "pitch": "+0Hz", "rate": "-15%"},
-    " Male English (Guy Natural)": {"id": "en-US-GuyNeural", "pitch": "+0Hz", "rate": "+0%"},
-    " Female English (Jenny Natural)": {"id": "en-US-JennyNeural", "pitch": "+0Hz", "rate": "+0%"}
+    "👨 Male English (Guy Natural)": {"id": "en-US-GuyNeural", "pitch": "+0Hz", "rate": "+0%"},
+    "👩 Female English (Jenny Natural)": {"id": "en-US-JennyNeural", "pitch": "+0Hz", "rate": "+0%"}
 }
 
 # Helper 1: Free AI Image Generator (Pollinations AI)
@@ -75,7 +83,7 @@ image_prompt = st.text_input("Visual Scene Prompt (Sirf Video ke liye - English 
 st.write("---")
 col_btn1, col_btn2 = st.columns(2)
 
-# ==================== BUTTON 1: SIRF AUDIO GENERATE KAREIN ====================
+# BUTTON 1: SIRF AUDIO GENERATE KAREIN
 with col_btn1:
     if st.button("🎙️ Generate Text-to-Voice (Audio Only)"):
         if story_prompt.strip():
@@ -102,7 +110,7 @@ with col_btn1:
         else:
             st.warning("Pehle Story Script text enter karein.")
 
-# ==================== BUTTON 2: AI VIDEO GENERATE KAREIN ====================
+# BUTTON 2: AI VIDEO GENERATE KAREIN
 with col_btn2:
     if st.button("🎬 Generate AI Video (Audio + Visuals)"):
         if story_prompt.strip() and image_prompt.strip():
@@ -135,3 +143,4 @@ with col_btn2:
                 st.error("Image generate nahi ho saki, dobara try karein.")
         else:
             st.warning("Video ke liye Script aur Visual Scene Prompt dono enter karein.")
+                         
