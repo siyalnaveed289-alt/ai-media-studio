@@ -215,5 +215,4 @@ with col_btn2:
         else:
             st.warning("Video ke liye Script aur Visual Scene Prompt dono enter karein.")
     
-( video ko b generate kara cinema or 3d cartoon videos ma b )
-( jis caractor ki picture bajy jayw us ko same wasa hw 100% natural ma he use karo )
+( video ko b generate kara cinema or 3d cartoon videos ma b)
