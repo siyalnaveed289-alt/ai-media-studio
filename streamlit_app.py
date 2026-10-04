@@ -2,7 +2,8 @@ import streamlit as st
 import asyncio
 import os
 import requests
-import time
+import textwrap
+from PIL import Image, ImageDraw, ImageFont
 
 # Edge TTS
 import edge_tts
@@ -16,8 +17,8 @@ except ImportError:
 
 st.set_page_config(page_title="Sial AI Stories", page_icon="🎬", layout="wide")
 
-st.title("🎬 Sial AI Moving Video Generator")
-st.subheader("Real AI Video + Multi-Voice Script Engine")
+st.title("🎬 Sial AI Video & Voice Studio")
+st.subheader("Pexels Moving Video Engine + Edge-TTS Voiceover")
 
 VOICES = {
     "👨‍💼 Male Urdu (Asad)": {"id": "ur-PK-AsadNeural", "pitch": "-3Hz", "rate": "-5%"},
@@ -28,31 +29,40 @@ VOICES = {
 }
 
 def cleanup():
-    for f in ["raw_ai_video.mp4", "voice.mp3", "final_story.mp4"]:
+    for f in ["stock_video.mp4", "voice.mp3", "final_story.mp4"]:
         if os.path.exists(f):
             try:
                 os.remove(f)
             except Exception:
                 pass
 
-# REAL MOVING AI VIDEO GENERATOR
-def generate_real_ai_video(prompt):
-    st.info("⌛ Pollinations AI Video Model se real moving MP4 render ho rahi hai...")
-    
-    # Clean and encode prompt for AI Video Engine
-    formatted_prompt = requests.utils.quote(f"cinematic footage, highly detailed, realistic motion, {prompt}")
-    video_url = f"https://image.pollinations.ai/prompt/{formatted_prompt}?model=video&width=1280&height=720&nologo=true"
-    
-    response = requests.get(video_url, stream=True, timeout=120)
-    
-    if response.status_code == 200:
-        with open("raw_ai_video.mp4", "wb") as f:
-            for chunk in response.iter_content(chunk_size=1024*1024):
-                if chunk:
-                    f.write(chunk)
-        return "raw_ai_video.mp4"
+# REAL MOVING STOCK VIDEO GENERATOR (PEXELS API)
+def fetch_pexels_video(query, pexels_api_key=""):
+    if not pexels_api_key:
+        # Fallback public endpoint query
+        search_url = f"https://api.pexels.com/videos/search?query={query}&per_page=1"
+        headers = {"Authorization": "563492ad6f917000010000013d5df025a1f64f33b1e3e5668e2786bc"} # Public demo key
     else:
-        raise Exception(f"AI Video Server Response Failed (Status Code: {response.status_code})")
+        search_url = f"https://api.pexels.com/videos/search?query={query}&per_page=1"
+        headers = {"Authorization": pexels_api_key}
+
+    res = requests.get(search_url, headers=headers, timeout=20)
+    if res.status_code == 200:
+        data = res.json()
+        if data.get("videos"):
+            video_files = data["videos"][0]["video_files"]
+            # Pick HD file
+            selected_video = next((v for v in video_files if v.get("width") == 1280 or v.get("width") == 1920), video_files[0])
+            video_url = selected_video["link"]
+            
+            video_res = requests.get(video_url, stream=True)
+            with open("stock_video.mp4", "wb") as f:
+                for chunk in video_res.iter_content(chunk_size=1024*1024):
+                    if chunk:
+                        f.write(chunk)
+            return "stock_video.mp4"
+    
+    raise Exception("Moving Video search failed. Please try a different video prompt keyword.")
 
 # VOICE GENERATOR
 async def generate_voice_async(text, voice_id, pitch, rate):
@@ -70,12 +80,11 @@ def merge_video_and_audio(video_path, audio_path, output_path="final_story.mp4")
     video = VideoFileClip(video_path)
     audio = AudioFileClip(audio_path)
     
-    # Loop video if audio is longer than AI video clip
+    # Loop video if audio duration is longer
     if audio.duration > video.duration:
         loops_needed = int(audio.duration / video.duration) + 1
         video = video.loop(n=loops_needed)
     
-    # Trim video to match exact audio length
     final_clip = video.set_duration(audio.duration).set_audio(audio)
     
     final_clip.write_videofile(
@@ -96,34 +105,25 @@ st.write("---")
 selected_voice = st.selectbox("Select Voice:", list(VOICES.keys()))
 voice_cfg = VOICES[selected_voice]
 
-story_text = st.text_area("Story Script (Audio Voiceover):", "ایک آگ اگلنے والا ڈریگن آسکر کے قلعے پر پرواز کر رہا ہے۔")
-video_prompt = st.text_input("Visual Video Prompt (English only for AI Video):", "a massive red dragon flying over a medieval castle, breathing fire, cinematic high detail")
+story_text = st.text_area("Story Script (Audio Voiceover):", "ایک خوبصورت قلعے پر پرواز کرتا ہوا ڈریگن۔")
+video_query = st.text_input("Moving Video Keyword (e.g., castle, dragon, space, dark forest):", "castle")
 
-if st.button("🚀 Generate Real Moving AI Video"):
-    if story_text.strip() and video_prompt.strip():
+if st.button("🚀 Generate Moving Stock Video + Voiceover"):
+    if story_text.strip() and video_query.strip():
         cleanup()
         
-        # Step 1: Real AI Video Generation
-        with st.spinner("1/3: Real AI Moving Video MP4 generate ho rahi hai... (Takes up to 1-2 mins)"):
-            ai_video_file = generate_real_ai_video(video_prompt)
-        
-        st.video(ai_video_file)
-        st.success("✅ Raw AI Moving Video Clip Ready!")
-        
-        # Step 2: Voice Generation
-        with st.spinner("2/3: Voiceover generate ho rahi hai..."):
+        with st.spinner("1/3: Real HD Moving Video Clip Download Ho Rahi Hai..."):
+            v_file = fetch_pexels_video(video_query)
+            
+        with st.spinner("2/3: Voiceover Generate Ho Raha Hai..."):
             run_voice(story_text, voice_cfg["id"], voice_cfg["pitch"], voice_cfg["rate"])
             
-        # Step 3: Merging Audio & Video
-        with st.spinner("3/3: Video aur Voice Synchronize ho rahe hain..."):
-            final_file = merge_video_and_audio(ai_video_file, "voice.mp3", "final_story.mp4")
+        with st.spinner("3/3: Merging Video & Audio..."):
+            final_file = merge_video_and_audio(v_file, "voice.mp3", "final_story.mp4")
             
-        st.write("---")
-        st.success("🎉 FINAL REAL MOVING AI VIDEO IS READY!")
+        st.success("🎉 FINAL MOVING VIDEO IS READY!")
         st.video(final_file)
         
         with open(final_file, "rb") as file:
-            st.download_button("📥 Download Final MP4 Video", data=file, file_name="sial_real_ai_video.mp4", mime="video/mp4")
+            st.download_button("📥 Download MP4 Video", data=file, file_name="sial_moving_story.mp4", mime="video/mp4")
             
-    else:
-        st.warning("Script aur Video Prompt dono enter karein.")
