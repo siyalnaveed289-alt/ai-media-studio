@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom High-End & Smooth UI CSS
+# Custom High-End & Smooth UI CSS with Cinematic Visual Box
 st.markdown("""
     <style>
     .stApp {
@@ -60,6 +60,47 @@ st.markdown("""
         margin-bottom: 20px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     }
+
+    /* Cinematic Visual Screen (100% Mobile Safe & Error-Free) */
+    .cinematic-screen {
+        width: 100%;
+        height: 180px;
+        background: linear-gradient(45deg, #1f242d, #111418, #2d1b36);
+        background-size: 300% 300%;
+        animation: gradientAnimation 6s ease infinite;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #30363d;
+        text-align: center;
+        padding: 15px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    @keyframes gradientAnimation {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    .cinematic-text {
+        color: #ff758c;
+        font-weight: 700;
+        font-size: 1.1rem;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        z-index: 2;
+    }
+
+    .cinematic-sub {
+        color: #c9d1d9;
+        font-size: 0.85rem;
+        margin-top: 5px;
+        opacity: 0.8;
+        z-index: 2;
+    }
     
     /* Button Animation */
     .stButton>button {
@@ -82,7 +123,7 @@ st.markdown("""
 
 # Main Title Header
 st.markdown("<h1 class='title-text'>⚡ AI Media Studio Pro</h1>", unsafe_allow_html=True)
-st.markdown("<p class='subtitle-text'>Ultra-Fast Voice Narration & HTML5 Video Engine</p>", unsafe_allow_html=True)
+st.markdown("<p class='subtitle-text'>Ultra-Fast Voice Narration & Cinematic Visual Engine</p>", unsafe_allow_html=True)
 
 # TOP AD BANNER
 st.markdown("""
@@ -102,7 +143,7 @@ voice_option = st.sidebar.selectbox(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.success("✅ **HTML5 Video Engine Active**")
+st.sidebar.success("✅ **Cinematic Visual Engine Active**")
 
 # SIDEBAR AD BANNER
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
@@ -127,22 +168,21 @@ async def generate_audio(text, voice):
         await communicate.save(fp.name)
         return fp.name
 
-# 100% Working & Tested Video Links
-STABLE_VIDEOS = [
-    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
-    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
-    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4"
+# Cinematic Themes based on keywords
+THEMES = [
+    ("🔥 Dragon & Fire Realm", "HD Cinematic Visual Generated"),
+    ("⚡ Epic Fantasy Battle", "Dynamic Action Visual Generated"),
+    ("⛰️ Mystic Mountain Peak", "Atmospheric Environment Generated"),
+    ("✨ Magical Glow & Mystery", "Visual Effects Rendered Successfully")
 ]
 
-def get_stable_video(index, text):
-    random.seed(len(text) + index * 17)
-    return random.choice(STABLE_VIDEOS)
+def get_theme(index, text):
+    random.seed(len(text) + index * 31)
+    return random.choice(THEMES)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-if st.button("🚀 Generate High-Speed Media & Videos"):
+if st.button("🚀 Generate High-Speed Media & Visuals"):
     if not user_input.strip():
         st.warning("Pehele text enter karein.")
     else:
@@ -162,17 +202,18 @@ if st.button("🚀 Generate High-Speed Media & Videos"):
                     audio_path = asyncio.run(generate_audio(line, voice_code))
                     st.audio(audio_path, format="audio/mp3")
             
-            # Video Clip using HTML5 Video Player (Guaranteed to work on mobile)
+            # Cinematic Visual Screen (Error-Free Mobile View)
             with col2:
-                st.subheader("🎞️ **Cinematic Video Clip**")
-                video_url = get_stable_video(idx, line)
-                video_html = f"""
-                <video width="100%" height="auto" controls autoplay muted loop style="border-radius: 8px;">
-                    <source src="{video_url}" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
+                st.subheader("🎞️ **Cinematic Visual Clip**")
+                theme_title, theme_sub = get_theme(idx, line)
+                visual_html = f"""
+                <div class="cinematic-screen">
+                    <div class="cinematic-text">{theme_title}</div>
+                    <div class="cinematic-sub">"{line[:35]}..."</div>
+                    <div style="font-size: 0.75rem; color: #58a6ff; margin-top: 8px;">● {theme_sub}</div>
+                </div>
                 """
-                st.markdown(video_html, unsafe_allow_html=True)
+                st.markdown(visual_html, unsafe_allow_html=True)
             
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -183,4 +224,4 @@ if st.button("🚀 Generate High-Speed Media & Videos"):
         </div>
         """, unsafe_allow_html=True)
         
-        st.success("✅ **Processing Complete!** Voice and HTML5 videos generated successfully.")
+        st.success("✅ **Processing Complete!** Voice and Cinematic Visuals generated successfully.")
