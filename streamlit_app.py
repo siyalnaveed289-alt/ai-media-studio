@@ -1,197 +1,137 @@
 import streamlit as st
 import asyncio
 import edge_tts
-import tempfile
-import random
+import os
+import requests
+import urllib.parse
+from PIL import Image
+from moviepy.editor import ImageClip, AudioFileClip, TextClip, CompositeVideoClip
 
-# Page Config
-st.set_page_config(
-    page_title="AI Cinematic Studio Pro",
-    page_icon="🐉",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+st.set_page_config(page_title="Sial AI Stories", page_icon="🎬", layout="wide")
 
-# Custom High-End UI CSS
-st.markdown("""
-    <style>
-    .stApp {
-        background-color: #0d1117;
-        color: #c9d1d9;
-    }
-    
-    .title-text {
-        font-size: 2.3rem;
-        font-weight: 800;
-        background: linear-gradient(90deg, #ff4b4b, #ff758c);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        text-align: center;
-        margin-bottom: 0px;
-    }
-    
-    .subtitle-text {
-        text-align: center;
-        color: #8b949e;
-        font-size: 0.9rem;
-        margin-bottom: 20px;
-    }
+st.title("🎬 Sial AI Stories")
+st.subheader("Multi-Voice Audio & AI Video Generator")
 
-    .ad-banner {
-        background: linear-gradient(135deg, #1f242d, #161b22);
-        border: 1px dashed #30363d;
-        border-radius: 10px;
-        padding: 12px;
-        text-align: center;
-        color: #58a6ff;
-        font-size: 0.85rem;
-        font-weight: 600;
-        margin: 15px 0px;
-    }
-
-    .scene-box {
-        background-color: #161b22;
-        border: 1px solid #30363d;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-    }
-    
-    .stButton>button {
-        width: 100%;
-        background: linear-gradient(90deg, #238636, #2ea043);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 14px 24px;
-        font-size: 1.1rem;
-        font-weight: bold;
-        transition: all 0.3s ease;
-    }
-    .stButton>button:hover {
-        background: linear-gradient(90deg, #2ea043, #3fb950);
-        transform: translateY(-2px);
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# Main Title Header
-st.markdown("<h1 class='title-text'>🐉 AI Cinematic Story Studio</h1>", unsafe_allow_html=True)
-st.markdown("<p class='subtitle-text'>Smart Fantasy Video Matcher & Urdu Voice Narration</p>", unsafe_allow_html=True)
-
-# TOP AD BANNER
-st.markdown("""
-<div class='ad-banner'>
-    📢 <b>SPONSORED ADS / PROMOTION SPOT</b><br>
-    <span style='color:#8b949e;'>Click here to explore partner tools & AI offers</span>
-</div>
-""", unsafe_allow_html=True)
-
-# Sidebar
-st.sidebar.markdown("### ⚙️ **Studio Dashboard**")
-st.sidebar.markdown("---")
-
-voice_option = st.sidebar.selectbox(
-    "🎙️ **Select Voice Model**", 
-    ["ur-PK-AsadNeural (Urdu Male)", "ur-PK-UzmaNeural (Urdu Female)", "en-US-ChristopherNeural (English Male)"]
-)
-
-st.sidebar.markdown("---")
-st.sidebar.success("✅ **Smart Cinematic Engine Active**")
-
-# SIDEBAR AD BANNER
-st.sidebar.markdown("<br>", unsafe_allow_html=True)
-st.sidebar.markdown("""
-<div class='ad-banner'>
-    🎯 <b>AdSpot</b><br>
-    Monetize Your Traffic
-</div>
-""", unsafe_allow_html=True)
-
-# Input Area
-user_input = st.text_area(
-    "✍️ **Script & Story Input:**", 
-    height=130, 
-    value="Koh-e-Qaf ke paharon mein ek ajeeb dragon rehta tha.\nUski saans se aag ke sholay nikalte thay.\nZayn ne himmat karke dragon ka samna kiya.",
-    placeholder="Write your line-by-line script here..."
-)
-
-async def generate_audio(text, voice):
-    communicate = edge_tts.Communicate(text, voice)
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
-        await communicate.save(fp.name)
-        return fp.name
-
-# Curated Stable Fantasy & Cinematic Video Library (Including Sintel & Epic Open Sources)
-FANTASY_VIDEOS = {
-    "dragon": "https://media.w3.org/2010/05/sintel/trailer.mp4",
-    "pahar": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-    "aag": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-    "jung": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-    "default": [
-        "https://media.w3.org/2010/05/sintel/trailer.mp4",
-        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4"
-    ]
+# Voices Mapping
+VOICES = {
+    "👨‍💼 Male Urdu (Asad - Deep Storyteller)": {"id": "ur-PK-AsadNeural", "pitch": "-3Hz", "rate": "-5%"},
+    "👩‍💼 Female Urdu (Uzma - Storyteller)": {"id": "ur-PK-UzmaNeural", "pitch": "-1Hz", "rate": "-5%"},
+    "🕌 Male Arabic (Hamed - Quran Best)": {"id": "ar-SA-HamedNeural", "pitch": "+0Hz", "rate": "-15%"},
+    " Male English (Guy Natural)": {"id": "en-US-GuyNeural", "pitch": "+0Hz", "rate": "+0%"},
+    " Female English (Jenny Natural)": {"id": "en-US-JennyNeural", "pitch": "+0Hz", "rate": "+0%"}
 }
 
-def get_matching_video(line_text, index):
-    text_lower = line_text.lower()
-    if "dragon" in text_lower or "aag" in text_lower or "sholay" in text_lower:
-        return FANTASY_VIDEOS["dragon"]
-    elif "pahar" in text_lower or "mountain" in text_lower:
-        return FANTASY_VIDEOS["pahar"]
-    elif "jung" in text_lower or "fight" in text_lower or "samna" in text_lower:
-        return FANTASY_VIDEOS["jung"]
-    else:
-        # Fallback pool rotation
-        pool = FANTASY_VIDEOS["default"]
-        return pool[index % len(pool)]
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-if st.button("🚀 Generate Voice & Cinematic Video Scenes"):
-    if not user_input.strip():
-        st.warning("Pehele text enter karein.")
-    else:
-        lines = [line.strip() for line in user_input.split('\n') if line.strip()]
+# Helper 1: Free AI Image Generator (Pollinations AI)
+def generate_ai_image(prompt_text, filename="scene.jpg"):
+    try:
+        encoded_prompt = urllib.parse.quote(f"cinematic fantasy scene, 8k resolution, highly detailed, {prompt_text}")
+        image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1280&height=720&nologo=true"
         
-        for idx, line in enumerate(lines, 1):
-            st.markdown("<div class='scene-box'>", unsafe_allow_html=True)
-            st.markdown(f"### 📍 **Scene {idx}:** *\"{line}\"*", unsafe_allow_html=True)
-            
-            col1, col2 = st.columns(2)
-            
-            # Audio Generation
-            with col1:
-                st.subheader("🔊 **Voice Audio**")
-                with st.spinner("Generating Voice..."):
-                    voice_code = voice_option.split()[0]
-                    audio_path = asyncio.run(generate_audio(line, voice_code))
-                    st.audio(audio_path, format="audio/mp3")
-            
-            # Cinematic Video Player using HTML5 for 100% Mobile Stability
-            with col2:
-                st.subheader("🎞️ **Cinematic Video Clip**")
-                video_url = get_matching_video(line, idx)
-                video_html = f"""
-                <video width="100%" height="auto" controls autoplay muted loop style="border-radius: 8px; border: 1px solid #30363d;">
-                    <source src="{video_url}" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-                """
-                st.markdown(video_html, unsafe_allow_html=True)
-            
-            st.markdown("</div>", unsafe_allow_html=True)
+        response = requests.get(image_url, timeout=30)
+        if response.status_code == 200:
+            with open(filename, "wb") as f:
+                f.write(response.content)
+            return filename
+    except Exception as e:
+        st.error(f"Image Generation Error: {e}")
+    return None
 
-        # BOTTOM AD BANNER
-        st.markdown("""
-        <div class='ad-banner'>
-            🔥 <b>SUPPORT OUR STUDIO</b> — Click sponsor links above to keep this tool free!
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.success("✅ **Processing Complete!** Voice and matching fantasy cinematic videos generated successfully.")
-    
+# Helper 2: Audio Generator
+async def generate_audio(text, voice_id, pitch, rate, output_file="voice.mp3"):
+    communicate = edge_tts.Communicate(text, voice_id, pitch=pitch, rate=rate)
+    await communicate.save(output_file)
+
+# Helper 3: Video Assembly Engine
+def create_cinematic_video(image_path, audio_path, caption_text, output_video="final_story.mp4"):
+    audio = AudioFileClip(audio_path)
+    duration = audio.duration
+
+    # Load AI Generated Image
+    img_clip = ImageClip(image_path).set_duration(duration)
+
+    # Subtitles / Captions Overlay
+    txt_clip = TextClip(caption_text, fontsize=28, color='white', bg_color='black', 
+                        size=(1100, None), method='caption')
+    txt_clip = txt_clip.set_position(('center', 'bottom')).set_duration(duration)
+
+    # Combine Image + Text + Audio
+    final_video = CompositeVideoClip([img_clip, txt_clip])
+    final_video = final_video.set_audio(audio)
+
+    final_video.write_videofile(output_video, fps=24, codec='libx264', audio_codec='aac')
+    return output_video
+
+# UI Inputs
+st.write("---")
+selected_voice_name = st.selectbox("Choose Voice Style:", list(VOICES.keys()))
+voice_cfg = VOICES[selected_voice_name]
+
+story_prompt = st.text_area("Story Script / Text (Audio aur Video dono ke liye):", 
+                             "ایک خوبصورت شہزادی اور آگ اگلنے والا ڈریگن، جو ایک پرسرار قلعے میں رہتے تھے۔")
+
+image_prompt = st.text_input("Visual Scene Prompt (Sirf Video ke liye - English me likhein):", 
+                             "a brave warrior girl facing a giant fire breathing dragon in a dark castle, hyperrealistic")
+
+st.write("---")
+col_btn1, col_btn2 = st.columns(2)
+
+# ==================== BUTTON 1: SIRF AUDIO GENERATE KAREIN ====================
+with col_btn1:
+    if st.button("🎙️ Generate Text-to-Voice (Audio Only)"):
+        if story_prompt.strip():
+            with st.spinner("Voiceover generate ho raha hai..."):
+                try:
+                    if os.path.exists("voice.mp3"):
+                        os.remove("voice.mp3")
+                    
+                    asyncio.run(generate_audio(story_prompt, voice_cfg["id"], voice_cfg["pitch"], voice_cfg["rate"], "voice.mp3"))
+                    
+                    if os.path.exists("voice.mp3"):
+                        st.success("🎉 Audio Successfully Ban Gayi!")
+                        st.audio("voice.mp3", format="audio/mp3")
+                        
+                        with open("voice.mp3", "rb") as file:
+                            st.download_button(
+                                label="📥 Download Audio MP3",
+                                data=file,
+                                file_name="sial_ai_voice.mp3",
+                                mime="audio/mp3"
+                            )
+                except Exception as e:
+                    st.error(f"Audio Error: {e}")
+        else:
+            st.warning("Pehle Story Script text enter karein.")
+
+# ==================== BUTTON 2: AI VIDEO GENERATE KAREIN ====================
+with col_btn2:
+    if st.button("🎬 Generate AI Video (Audio + Visuals)"):
+        if story_prompt.strip() and image_prompt.strip():
+            with st.spinner("1/3: AI Visual Scene Draw Ho Raha Hai..."):
+                img_file = generate_ai_image(image_prompt, "ai_scene.jpg")
+                
+            if img_file and os.path.exists(img_file):
+                st.image(img_file, caption="AI Generated Unique Visual Scene", use_column_width=True)
+                
+                with st.spinner("2/3: Voiceover Generate Ho Raha Hai..."):
+                    asyncio.run(generate_audio(story_prompt, voice_cfg["id"], voice_cfg["pitch"], voice_cfg["rate"], "voice.mp3"))
+                
+                with st.spinner("3/3: Video Render Ho Rahi Hai..."):
+                    try:
+                        video_file = create_cinematic_video("ai_scene.jpg", "voice.mp3", story_prompt, "sial_ai_story.mp4")
+                        
+                        st.success("🎉 HD Video Successfully Ban Gayi!")
+                        st.video(video_file)
+                        
+                        with open(video_file, "rb") as file:
+                            st.download_button(
+                                label="📥 Download HD MP4 Video",
+                                data=file,
+                                file_name="sial_ai_cinematic_story.mp4",
+                                mime="video/mp4"
+                            )
+                    except Exception as e:
+                        st.error(f"Video Assembly Error: {e}")
+            else:
+                st.error("Image generate nahi ho saki, dobara try karein.")
+        else:
+            st.warning("Video ke liye Script aur Visual Scene Prompt dono enter karein.")
