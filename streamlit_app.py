@@ -2,6 +2,7 @@ import streamlit as st
 import asyncio
 import edge_tts
 import tempfile
+import random
 
 # Page Config
 st.set_page_config(
@@ -81,7 +82,7 @@ st.markdown("""
 
 # Main Title Header
 st.markdown("<h1 class='title-text'>⚡ AI Media Studio Pro</h1>", unsafe_allow_html=True)
-st.markdown("<p class='subtitle-text'>Ultra-Fast Voice Narration & Smart Cinematic Video Engine</p>", unsafe_allow_html=True)
+st.markdown("<p class='subtitle-text'>Dynamic Voice Narration & Smart Multi-Video Match Engine</p>", unsafe_allow_html=True)
 
 # TOP AD BANNER PLACEHOLDER
 st.markdown("""
@@ -101,7 +102,7 @@ voice_option = st.sidebar.selectbox(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.success("✅ **Auto Video Mode Active** (No API Key Needed!)")
+st.sidebar.success("✅ **Dynamic Video Engine Active**")
 
 # SIDEBAR AD BANNER
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
@@ -114,9 +115,9 @@ st.sidebar.markdown("""
 
 # Input Area
 user_input = st.text_area(
-    "✍️ **Script & Poetry Input:**", 
+    "✍️ **Script & Story Input:**", 
     height=130, 
-    value="Dil se jo baat nikalti hai, asar rakhti hai,\nPar nahin, taaqat-e-parwaaz magar rakhti hai.",
+    value="Ek puranay pahar par ek taaqatwar dragon rehta tha.\nUski saans se aag ke sholay nikalte thay.\nZayn ne himmat karke dragon ka samna kiya.",
     placeholder="Write your line-by-line script here..."
 )
 
@@ -126,15 +127,24 @@ async def generate_audio(text, voice):
         await communicate.save(fp.name)
         return fp.name
 
-# Reliable Mobile-Friendly Sample Video Links
-CINEMATIC_VIDEOS = [
+# Expanded Pool of Unique Cinematic Videos for Variety
+DYNAMIC_VIDEOS = [
     "https://www.w3schools.com/html/mov_bbb.mp4",
     "https://media.w3.org/2010/05/sintel/trailer.mp4",
-    "https://www.w3schools.com/html/movie.mp4"
+    "https://www.w3schools.com/html/movie.mp4",
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackSeeTheWorld.mp4"
 ]
 
-def get_smart_video(index):
-    return CINEMATIC_VIDEOS[index % len(CINEMATIC_VIDEOS)]
+def get_unique_video(index, text):
+    # Use text length and index to create a pseudo-random unique selection per scene
+    seed_val = len(text) + index
+    random.seed(seed_val)
+    return random.choice(DYNAMIC_VIDEOS)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -162,7 +172,7 @@ if st.button("🚀 Generate High-Speed Media & Videos"):
             with col2:
                 st.subheader("🎞️ **Cinematic Video Clip**")
                 with st.spinner("Loading Video..."):
-                    video_url = get_smart_video(idx)
+                    video_url = get_unique_video(idx, line)
                     st.video(video_url)
             
             st.markdown("</div>", unsafe_allow_html=True)
@@ -174,4 +184,4 @@ if st.button("🚀 Generate High-Speed Media & Videos"):
         </div>
         """, unsafe_allow_html=True)
         
-        st.success("✅ **Processing Complete!** Voice and Video generated successfully.")
+        st.success("✅ **Processing Complete!** Unique voice and varied videos generated successfully.")
