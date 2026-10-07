@@ -1,129 +1,116 @@
-import streamlit as st
-import asyncio
+cat << 'EOF' > multi_category_book_maker.py
 import os
 import requests
-import textwrap
-from PIL import Image, ImageDraw, ImageFont
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
 
-# Edge TTS
-import edge_tts
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyDZUhC7WUJnYbVJuoguXnEaMZNIGFHzf-M")
 
-# MoviePy Safe Imports
-try:
-    from moviepy.editor import VideoFileClip, AudioFileClip
-except ImportError:
-    from moviepy.video.io.VideoFileClip import VideoFileClip
-    from moviepy.audio.io.AudioFileClip import AudioFileClip
+def generate_content(prompt):
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    headers = {'Content-Type': 'application/json'}
+    data = {"contents": [{"parts": [{"text": prompt}]}]}
+    try:
+        res = requests.post(url, headers=headers, json=data)
+        if res.status_code == 200:
+            return res.json()['candidates'][0]['content']['parts'][0]['text']
+        else:
+            return "Error generating content from AI."
+    except Exception as e:
+        return f"Error: {e}"
 
-st.set_page_config(page_title="Sial AI Stories", page_icon="🎬", layout="wide")
-
-st.title("🎬 Sial AI Video & Voice Studio")
-st.subheader("Pexels Moving Video Engine + Edge-TTS Voiceover")
-
-VOICES = {
-    "👨‍💼 Male Urdu (Asad)": {"id": "ur-PK-AsadNeural", "pitch": "-3Hz", "rate": "-5%"},
-    "👩‍💼 Female Urdu (Uzma)": {"id": "ur-PK-UzmaNeural", "pitch": "-1Hz", "rate": "-5%"},
-    "🕌 Male Arabic (Hamed)": {"id": "ar-SA-HamedNeural", "pitch": "+0Hz", "rate": "-15%"},
-    "👨 Male English (Guy)": {"id": "en-US-GuyNeural", "pitch": "+0Hz", "rate": "+0%"},
-    "👩 Female English (Jenny)": {"id": "en-US-JennyNeural", "pitch": "+0Hz", "rate": "+0%"}
-}
-
-def cleanup():
-    for f in ["stock_video.mp4", "voice.mp3", "final_story.mp4"]:
-        if os.path.exists(f):
-            try:
-                os.remove(f)
-            except Exception:
-                pass
-
-# REAL MOVING STOCK VIDEO GENERATOR (PEXELS API)
-def fetch_pexels_video(query, pexels_api_key=""):
-    if not pexels_api_key:
-        # Fallback public endpoint query
-        search_url = f"https://api.pexels.com/videos/search?query={query}&per_page=1"
-        headers = {"Authorization": "563492ad6f917000010000013d5df025a1f64f33b1e3e5668e2786bc"} # Public demo key
-    else:
-        search_url = f"https://api.pexels.com/videos/search?query={query}&per_page=1"
-        headers = {"Authorization": pexels_api_key}
-
-    res = requests.get(search_url, headers=headers, timeout=20)
-    if res.status_code == 200:
-        data = res.json()
-        if data.get("videos"):
-            video_files = data["videos"][0]["video_files"]
-            # Pick HD file
-            selected_video = next((v for v in video_files if v.get("width") == 1280 or v.get("width") == 1920), video_files[0])
-            video_url = selected_video["link"]
+def create_pdf(filename_prefix, title, content):
+    filename = f"/sdcard/Download/{filename_prefix}_{title.replace(' ', '_')}.pdf"
+    doc = SimpleDocTemplate(filename, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+    story = []
+    
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle('BookTitle', parent=styles['Heading1'], fontSize=22, textColor=colors.HexColor('#1A365D'), alignment=1, spaceAfter=20)
+    heading_style = ParagraphStyle('ChapterHeading', parent=styles['Heading2'], fontSize=15, textColor=colors.HexColor('#2C5282'), spaceBefore=15, spaceAfter=10)
+    body_style = ParagraphStyle('BookBody', parent=styles['Normal'], fontSize=11, textColor=colors.HexColor('#2D3748'), leading=16, spaceAfter=10)
+    
+    story.append(Paragraph(title.upper(), title_style))
+    story.append(Spacer(1, 15))
+    
+    lines = content.split('\n')
+    for line in lines:
+        if not line.strip():
+            continue
+        if line.startswith('#') or (line.startswith('**') and len(line) < 60):
+            story.append(Paragraph(line.replace('#', '').strip(), heading_style))
+        else:
+            story.append(Paragraph(line, body_style))
             
-            video_res = requests.get(video_url, stream=True)
-            with open("stock_video.mp4", "wb") as f:
-                for chunk in video_res.iter_content(chunk_size=1024*1024):
-                    if chunk:
-                        f.write(chunk)
-            return "stock_video.mp4"
+    # Box layout for facts and Islamic perspective
+    box_data = [
+        [Paragraph("<b>Scientific Fact / Research Note</b>", body_style), Paragraph("<b>Islamic Perspective (Quran / Hadith)</b>", body_style)],
+        [Paragraph("Research indicates that structured intellectual and creative pursuits enhance cognitive function and mental well-being.", body_style), 
+         Paragraph("‘And say: My Lord, increase me in knowledge.’ (Surah Taha: 114)", body_style)]
+    ]
     
-    raise Exception("Moving Video search failed. Please try a different video prompt keyword.")
-
-# VOICE GENERATOR
-async def generate_voice_async(text, voice_id, pitch, rate):
-    communicate = edge_tts.Communicate(text, voice_id, pitch=pitch, rate=rate)
-    await communicate.save("voice.mp3")
-
-def run_voice(text, voice_id, pitch, rate):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(generate_voice_async(text, voice_id, pitch, rate))
-    loop.close()
-
-# VIDEO + AUDIO COMPOSITOR
-def merge_video_and_audio(video_path, audio_path, output_path="final_story.mp4"):
-    video = VideoFileClip(video_path)
-    audio = AudioFileClip(audio_path)
+    t = Table(box_data, colWidths=[250, 250])
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#EDF2F7')),
+        ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#CBD5E0')),
+        ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E0')),
+        ('TOPPADDING', (0,0), (-1,-1), 10),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+        ('LEFTPADDING', (0,0), (-1,-1), 10),
+        ('RIGHTPADDING', (0,0), (-1,-1), 10),
+    ]))
     
-    # Loop video if audio duration is longer
-    if audio.duration > video.duration:
-        loops_needed = int(audio.duration / video.duration) + 1
-        video = video.loop(n=loops_needed)
+    story.append(Spacer(1, 20))
+    story.append(Paragraph("<b>Key Highlights & Notes</b>", heading_style))
+    story.append(t)
     
-    final_clip = video.set_duration(audio.duration).set_audio(audio)
-    
-    final_clip.write_videofile(
-        output_path, 
-        fps=24, 
-        codec='libx264', 
-        audio_codec='aac',
-        verbose=False,
-        logger=None
-    )
-    
-    video.close()
-    audio.close()
-    final_clip.close()
-    return output_path
+    doc.build(story)
+    print(f"\n[+] PDF successfully created and saved to Downloads: {filename}")
 
-st.write("---")
-selected_voice = st.selectbox("Select Voice:", list(VOICES.keys()))
-voice_cfg = VOICES[selected_voice]
-
-story_text = st.text_area("Story Script (Audio Voiceover):", "ایک خوبصورت قلعے پر پرواز کرتا ہوا ڈریگن۔")
-video_query = st.text_input("Moving Video Keyword (e.g., castle, dragon, space, dark forest):", "castle")
-
-if st.button("🚀 Generate Moving Stock Video + Voiceover"):
-    if story_text.strip() and video_query.strip():
-        cleanup()
+def main():
+    while True:
+        print("\n==========================================")
+        print("    MULTI-CATEGORY CONTENT & PDF MAKER    ")
+        print("==========================================")
+        print("1. Novel / Story Writing")
+        print("2. Complete Book")
+        print("3. Article Writing")
+        print("4. Essay Writing")
+        print("5. Passage Generation")
+        print("6. Exit")
         
-        with st.spinner("1/3: Real HD Moving Video Clip Download Ho Rahi Hai..."):
-            v_file = fetch_pexels_video(video_query)
-            
-        with st.spinner("2/3: Voiceover Generate Ho Raha Hai..."):
-            run_voice(story_text, voice_cfg["id"], voice_cfg["pitch"], voice_cfg["rate"])
-            
-        with st.spinner("3/3: Merging Video & Audio..."):
-            final_file = merge_video_and_audio(v_file, "voice.mp3", "final_story.mp4")
-            
-        st.success("🎉 FINAL MOVING VIDEO IS READY!")
-        st.video(final_file)
+        choice = input("\nSelect Category (1-6): ")
         
-        with open(final_file, "rb") as file:
-            st.download_button("📥 Download MP4 Video", data=file, file_name="sial_moving_story.mp4", mime="video/mp4")
+        if choice in ['1', '2', '3', '4', '5']:
+            categories = {'1': 'Novel', '2': 'Book', '3': 'Article', '4': 'Essay', '5': 'Passage'}
+            cat_name = categories[choice]
             
+            title = input(f"Enter {cat_name} Title or Topic: ")
+            
+            print("\nChoose Language:")
+            print("1. English")
+            print("2. Urdu")
+            lang_choice = input("Select Language (1-2): ")
+            lang = "Urdu" if lang_choice == '2' else "English"
+            
+            print(f"\n[*] Generating {cat_name} in {lang}, please wait...")
+            
+            prompt = f"""
+            Write a professional, comprehensive {cat_name} about '{title}' in {lang} language.
+            Include structured headings, engaging details, and well-organized paragraphs.
+            """
+            
+            content = generate_content(prompt)
+            create_pdf(cat_name, title, content)
+            
+        elif choice == '6':
+            print("Khuda Hafiz!")
+            break
+        else:
+            print("Invalid choice, please select from 1 to 6.")
+
+if __name__ == "__main__":
+    main()
+EOF
+    
